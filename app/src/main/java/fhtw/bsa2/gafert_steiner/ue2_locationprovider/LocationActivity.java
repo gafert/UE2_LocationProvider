@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import fhtw.bsa2.hammer.mocklocationprovider.StartMockservice;
 
 public class LocationActivity extends AppCompatActivity {
-
+    //does it work?
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
