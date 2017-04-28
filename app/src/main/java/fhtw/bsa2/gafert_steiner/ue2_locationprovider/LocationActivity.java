@@ -29,38 +29,55 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
     private GoogleApiClient mGoogleApiClient;
     private Location mLocation;
     private final int MY_PERM_REQ = 99;
-    private ArrayAdapter listAdapter;
+    private ArrayAdapter<String> listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location);
 
-        checkGooglePS(this);
+        // Get application context = environment information about application
+        checkGooglePS(getApplicationContext());
 
-        // New Mockservice from Library
-        StartMockservice mockService = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
-
-        mockService.setShowLog(true);
-        mockService.start();
-
-        // Adapter with own defined layout
-        listAdapter = new ArrayAdapter<String>(this, R.layout.list_element, new ArrayList<String>());
-
-        listAdapter.add("1st Entry, made by LocationActivity");
-        listAdapter.add("2nd Entry also made by LocationActivity");
-
-        // ListView
-        ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
-        // Relate Adapter and ListView
-        coordinateListView.setAdapter(listAdapter);
-
+        // Create an instance of GoogleAPIClient
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
                 .build();
 
+        // Start mock location
+        StartMockservice mockService =
+                new StartMockservice(
+                        this.getApplicationContext(), getResources().openRawResource(
+                        R.raw.route_example));
+        mockService.setShowLog(true);
+        mockService.start();
+
+        // Adapter with own defined layout
+        listAdapter = new ArrayAdapter<>(this, R.layout.list_element, new ArrayList<String>());
+
+        // Add elements to the listView
+        listAdapter.add("1st Entry, made by LocationActivity");
+        listAdapter.add("Here is a list of location changes");
+
+        // ListView
+        ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
+        // Relate Adapter and ListView
+        coordinateListView.setAdapter(listAdapter);
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mGoogleApiClient.disconnect();
     }
 
     public void checkGooglePS(Context context) {
@@ -81,23 +98,11 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        mGoogleApiClient.disconnect();
-    }
-
-    @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected()");
+
         // Check permissions
-        if (ActivityCompat.checkSelfPermission(this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -124,7 +129,20 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
 
     @Override
     public void onLocationChanged(Location location) {
-        // Check permissions (see code in onConnected())
+        // Check permissions
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= 23) {
+                Log.d(TAG, "Version >= 23");
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERM_REQ);
+            }
+            else {
+                Log.d(TAG, "onConnected(): ACCESS PROBLEM");
+                return;
+            }
+        }
 
         mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLocation != null) {
