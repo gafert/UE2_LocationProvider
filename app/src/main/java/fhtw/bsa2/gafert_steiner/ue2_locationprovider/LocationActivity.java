@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -28,7 +29,7 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
     private static final String TAG = "LocationActivity";
     private GoogleApiClient mGoogleApiClient;
     private Location mLocation;
-    private final int MY_PERM_REQ = 99;
+    private final int LOCATION_REQ_PERM = 99;
     private ArrayAdapter<String> listAdapter;
 
     @Override
@@ -99,7 +100,6 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
 
     @Override
     public void onConnected(Bundle bundle) {
-        Log.d(TAG, "onConnected()");
 
         // Check permissions
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
@@ -108,47 +108,64 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
                 != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= 23) {
                 Log.d(TAG, "Version >= 23");
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERM_REQ);
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQ_PERM);
             } else {
                 Log.d(TAG, "onConnected(): ACCESS PROBLEM");
                 return;
             }
+        } else {
+            // If it has permission already
+            getLocation();
         }
+    }
 
-        // Setup periodic location updates
+    @Override
+    public void onLocationChanged(Location location) {
+        // Check permission
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLocation != null) {
+            listAdapter.add(
+                    "Latitude: " + String.valueOf(mLocation.getLatitude())
+                            + ", Longitude: " + String.valueOf(mLocation.getLongitude()));
+        }
+    }
+
+    // Setup periodic location updates
+    public void getLocation() {
         // Configure location request parameters
         LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000); //10 sec, inexact
-        mLocationRequest.setFastestInterval(5000); // 5 sec, limit the updates
+        mLocationRequest.setInterval(1000); //1 sec, inexact
+        mLocationRequest.setFastestInterval(500); // 0.5 sec, limit the updates
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        // Request updates with configuration from above
+        // Request updates with configuration from above when permission is granted
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         //Get last location, if available
         mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
     }
 
+    // Get permission result and do what has to be done when they are granted
     @Override
-    public void onLocationChanged(Location location) {
-        // Check permissions
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= 23) {
-                Log.d(TAG, "Version >= 23");
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERM_REQ);
-            }
-            else {
-                Log.d(TAG, "onConnected(): ACCESS PROBLEM");
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case LOCATION_REQ_PERM: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted, now get location data
+                    getLocation();
+
+                } else {
+                    // permission was denied
+                    Toast.makeText(this, "Location permission is required!", Toast.LENGTH_SHORT).show();
+                }
                 return;
             }
-        }
-
-        mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (mLocation != null) {
-            listAdapter.add(
-                    "Latitude: " + String.valueOf(mLocation.getLatitude())
-                    + ", Longitude: " + String.valueOf(mLocation.getLongitude()));
         }
     }
 
