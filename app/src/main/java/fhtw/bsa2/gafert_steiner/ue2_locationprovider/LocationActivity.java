@@ -36,6 +36,9 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
 
     private Switch mockSwitch;
 
+    // Class member?
+    public StartMockservice mockservice;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,7 +64,7 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
         // Relate Adapter and ListView
         coordinateListView.setAdapter(listAdapter);
 
-        final StartMockservice mockservice = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
+        mockservice = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
         mockservice.setShowLog(true);
 
         // Start and stop mockService with switch
