@@ -10,7 +10,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
 import android.widget.ListView;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -32,10 +34,14 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
     private final int LOCATION_REQ_PERM = 99;
     private ArrayAdapter<String> listAdapter;
 
+    private Switch mockSwitch;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location);
+
+        mockSwitch = (Switch) findViewById(R.id.mockSwitch);
 
         // Get application context = environment information about application
         checkGooglePS(getApplicationContext());
@@ -47,25 +53,27 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
                 .addApi(LocationServices.API)
                 .build();
 
-        // Start mock location
-        StartMockservice mockService =
-                new StartMockservice(
-                        this.getApplicationContext(), getResources().openRawResource(
-                        R.raw.route_example));
-        mockService.setShowLog(true);
-        mockService.start();
-
         // Adapter with own defined layout
         listAdapter = new ArrayAdapter<>(this, R.layout.list_element, new ArrayList<String>());
-
-        // Add elements to the listView
-        listAdapter.add("1st Entry, made by LocationActivity");
-        listAdapter.add("Here is a list of location changes");
 
         // ListView
         ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
         // Relate Adapter and ListView
         coordinateListView.setAdapter(listAdapter);
+
+        final StartMockservice mockservice = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
+        mockservice.setShowLog(true);
+
+        // Start and stop mockService with switch
+        mockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    mockservice.start();
+                } else {
+                    mockservice.shutdown();
+                }
+            }
+        });
 
     }
 
@@ -137,16 +145,14 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
     public void getLocation() {
         // Configure location request parameters
         LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000); //1 sec, inexact
-        mLocationRequest.setFastestInterval(500); // 0.5 sec, limit the updates
+        mLocationRequest.setInterval(10000); //10 sec, inexact
+        mLocationRequest.setFastestInterval(5000); // 5 sec, limit the updates
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         // Request updates with configuration from above when permission is granted
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        //Get last location, if available
-        mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
     }
 
     // Get permission result and do what has to be done when they are granted
