@@ -2,6 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fhtw.bsa2.gafert_steiner.ue2_locationprovider">
 
+    <!-- Google Maps API Key -->
+    <!-- Proudly sponsored by gafert´s gmail account -->
+    <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyApY94aflMdw4ss__reDjh7YjDvNIdE2ao" />
+
+    <!-- Used by MockLocationService -->
+    <!-- Ich glaub es ist egal, dass es rot markiert ist -->
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
+
+    <!-- Used by location services -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,21 +23,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".LocationActivity">
+        <activity
+            android:name=".LocationActivity"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity
+            android:name=".SplashScreen">
             <intent-filter>
+                <!-- Show the splash screen when the app starts -->
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
     </application>
-
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyApY94aflMdw4ss__reDjh7YjDvNIdE2ao" />
-
-    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
 </manifest>
