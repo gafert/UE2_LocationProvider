@@ -1,13 +1,15 @@
 package fhtw.bsa2.gafert_steiner.ue2_locationprovider;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -30,22 +32,24 @@ import fhtw.bsa2.hammer.mocklocationprovider.StartMockservice;
 public class LocationActivity extends AppCompatActivity implements LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "LocationActivity";
-    private GoogleApiClient mGoogleApiClient;
     private final int LOCATION_REQ_PERM = 99;
-    private ArrayAdapter<String> listAdapter;
-
     // Class member?
     public StartMockservice mockservice;
+    private GoogleApiClient mGoogleApiClient;
+    private ArrayAdapter<String> listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location);
 
+        //
+        // SETUP GOOGLE PLAY SERVICES
+        //
+
         // Get application context = environment information about application
         checkGooglePS(getApplicationContext());
 
-        // HUMMMEL
         // Create an instance of GoogleAPIClient
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -53,19 +57,25 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
                 .addApi(LocationServices.API)
                 .build();
 
-        // HUMMMEL
+        //
+        // ADD LISTVIEW AND ITS ADAPTER
+        //
+
         // Adapter with own defined layout
         // An adapter is used to change the elements in a ListView
         // Data <-> Adapter <-> ListView
         listAdapter = new ArrayAdapter<>(this, R.layout.list_element, new ArrayList<String>());
 
-        // HUMMMEL
         // ListView containing the coordinates
         ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
 
-        // HUMMMEL
         // Relate Adapter and ListView
         coordinateListView.setAdapter(listAdapter);
+
+        //
+        // MOCKSERVICE
+        // TODO: Make mockservice work
+        //
 
         // Start the mockService
         // And set the gps route which it should use to route_example
@@ -83,44 +93,29 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
                 }
             }
         });
+
+        //
+        // OPEN MAP ON CLICK
+        //
+
+        FloatingActionButton mapButton = (FloatingActionButton) findViewById(R.id.mapButton);
+        mapButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Click action
+                Intent intent = new Intent(LocationActivity.this, MapsActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // HUMMEL
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        // HUMMEL
-        mGoogleApiClient.disconnect();
-    }
-
-    // HUMMMEL
-    public void checkGooglePS(Context context) {
-        // Create API availability object
-        final GoogleApiAvailability availability = GoogleApiAvailability.getInstance();
-        try {
-            // Check installed version
-            Log.d(TAG, getPackageManager().getPackageInfo("com.google.android.gms", 0).versionName);
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        if (availability.isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) {
-            Log.e(TAG, "Google PS availability: " + "ERROR");
-        } else {
-            Log.d(TAG, "Google PS availability: " + "SUCCESS");
-        }
-    }
-
-    // HUMMMEL
-    // Aber bisschen verändert, dass die App nicht abschmiert wenn
-    // sie beim ersten mal starten keine Rechte hat
-    // Hängt auch mit onRequestPermissionsResult() zusammen
+    /**
+     * Checks the location permissions
+     * If they are not allowed ask the user to allow them
+     * If they are already allowed continue with setupLocationRequest()
+     * The user input (if the permission was allowed or denied) is handled
+     * by the function onRequestPermissionsResult()
+     */
     @Override
     public void onConnected(Bundle bundle) {
         // Check permissions
@@ -129,18 +124,16 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
                 && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission is not set
-            // Check build version
             // Only request permission if build version is higher than 23
-            // Wahrscheinlich haben sich die permission Einstellungen ab 23 geändert und/oder
-            // es gibt die Funktion requestPermission() nicht
             if (Build.VERSION.SDK_INT >= 23) {
                 Log.d(TAG, "Version >= 23");
                 // Request the permission ACCESS_FINE_LOCATION
-                // Android shows a promt and asks the user for permission
-                // The choice (deny/allow) is handeled by onRequestPermissionsResult()
+                // Android shows a prompt and asks the user for permission
+                // The choice (deny/allow) is handled by onRequestPermissionsResult()
                 ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQ_PERM);
             } else {
                 Log.d(TAG, "onConnected(): ACCESS PROBLEM");
+                Toast.makeText(this, "You need to run Android 6.0 or above!", Toast.LENGTH_SHORT).show();
                 return;
             }
         } else {
@@ -149,8 +142,41 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
         }
     }
 
-    // Called after requestPermissions() was called and user made a choice
-    // Get permission result and do what has to be done when they are granted
+    /**
+     * Setup periodic location updates
+     */
+    private void setupLocationRequest() {
+        LocationRequest mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000); //10 sec, inexact
+        mLocationRequest.setFastestInterval(5000); // 5 sec, limit the updates
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    /**
+     * Called when the location changes
+     * But only in intervals specified in setupLocationRequest()
+     * -> setInterval() and setFastestInterval()
+     * Only called when the LocationRequest is setup -> setupLocation was called
+     */
+    @Override
+    public void onLocationChanged(Location location) {
+        // Get current location
+        Location mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLocation != null) {
+            // Add the current location to the ListView -> show it to the user
+            listAdapter.add(
+                    "Latitude: " + String.valueOf(mLocation.getLatitude())
+                            + ", Longitude: " + String.valueOf(mLocation.getLongitude()));
+        }
+    }
+
+    /**
+     * Called after requestPermissions() was called and user made a choice
+     * Get permission result and do what has to be done when they are granted
+     * Permission granted -> setupLocationRequest()
+     * Permission denied -> make Toast
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -169,46 +195,36 @@ public class LocationActivity extends AppCompatActivity implements LocationListe
         }
     }
 
-    // HUMMEL
-    // Setup periodic location updates
-    // Configure location request parameters
-    public void setupLocationRequest() {
-        LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000); //10 sec, inexact
-        mLocationRequest.setFastestInterval(5000); // 5 sec, limit the updates
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        // Request updates with configuration from above when permission is granted
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
+    /**
+     * Checks if the Google Play Services are available
+     */
+    private void checkGooglePS(Context context) {
+        // Create API availability object
+        final GoogleApiAvailability availability = GoogleApiAvailability.getInstance();
+        try {
+            // Check installed version
+            Log.d(TAG, getPackageManager().getPackageInfo("com.google.android.gms", 0).versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
         }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+
+        if (availability.isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) {
+            Log.e(TAG, "Google PS availability: " + "ERROR");
+        } else {
+            Log.d(TAG, "Google PS availability: " + "SUCCESS");
+        }
     }
 
-
-    // Called when the location changes
-    // But only in intervals specified in setupLocationRequest()
-    // -> setInterval() and setFastestInterval()
-    // Only called when the LocationRequest is setup -> setupLocation was called
     @Override
-    public void onLocationChanged(Location location) {
-        // Check permission
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        // Get current location
-        Location mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (mLocation != null) {
-            // Add the current location to the ListView -> show it to the user
-            listAdapter.add(
-                    "Latitude: " + String.valueOf(mLocation.getLatitude())
-                            + ", Longitude: " + String.valueOf(mLocation.getLongitude()));
-        }
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mGoogleApiClient.disconnect();
     }
 
     @Override

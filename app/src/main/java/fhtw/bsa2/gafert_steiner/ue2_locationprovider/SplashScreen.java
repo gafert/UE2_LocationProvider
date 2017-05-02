@@ -2,19 +2,21 @@ package fhtw.bsa2.gafert_steiner.ue2_locationprovider;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class SplashScreen extends AppCompatActivity {
 
-    // Makes a splash screen
-    // States the date of development
-    // And name of the application
-    // A click on the screen starts the main application
+    /**
+     * Makes a splash screen
+     * States the date of development
+     * And name of the application
+     * click on the screen starts the main application
+     */
 
     String[] DATA = {"01.05.2017","Location","Provider"};
     int TIME_BETWEEN_ANIMATIONS = 350;

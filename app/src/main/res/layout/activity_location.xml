@@ -1,41 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <Switch
-        android:id="@+id/mockSwitch"
+    <LinearLayout
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <Switch
+            android:id="@+id/mockSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="20dp"
+            android:text="Mock Location" />
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="5dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingStart="10dp"
+            android:paddingTop="10dp"
+            android:text="Location Updates"
+            android:textColor="?attr/colorPrimaryDark"
+            android:textSize="20sp" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="fill_parent"
+            android:layout_height="2dip"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:background="@color/colorPrimaryDark" />
+
+        <ListView
+            android:id="@+id/coordinate_list_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/mapButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingBottom="10dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:paddingTop="20dp"
-        android:text="Mock Location" />
+        android:layout_gravity="bottom|right"
+        android:layout_margin="16dp"
+        android:clickable="true"
+        android:src="@drawable/ic_map_white_24dp"
+        app:backgroundTint="@color/colorPrimaryDark"
+        app:fabSize="normal" />
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingBottom="5dp"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:paddingStart="10dp"
-        android:paddingTop="10dp"
-        android:text="Location Updates"
-        android:textColor="?attr/colorPrimaryDark"
-        android:textSize="20sp" />
-
-    <View
-        android:layout_width="fill_parent"
-        android:layout_height="2dip"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
-        android:background="@color/colorPrimaryDark" />
-
-    <ListView
-        android:id="@+id/coordinate_list_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-</LinearLayout>
+</FrameLayout>

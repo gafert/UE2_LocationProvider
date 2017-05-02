@@ -2,12 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fhtw.bsa2.gafert_steiner.ue2_locationprovider">
 
-    <!-- Google Maps API Key -->
-    <!-- Proudly sponsored by gafert´s gmail account -->
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyApY94aflMdw4ss__reDjh7YjDvNIdE2ao" />
-
     <!-- Used by MockLocationService -->
     <!-- Ich glaub es ist egal, dass es rot markiert ist -->
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
@@ -34,6 +28,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!--
+             Google Maps API Key
+             Proudly sponsored by gafert´s gmail account
+             Note that the API key is linked to the encryption key used to sign the APK.
+             You need a different API key for each encryption key, including the release key that is used to
+             sign the APK for publishing.
+             You can define the keys for the debug and release targets in src/debug/ and src/release/. 
+        -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyApY94aflMdw4ss__reDjh7YjDvNIdE2ao" />
+
+        <activity
+            android:name=".MapsActivity"
+            android:label="@string/title_activity_maps">
         </activity>
     </application>
 
