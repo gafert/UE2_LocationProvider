@@ -4,8 +4,12 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -27,14 +31,23 @@ public class SplashScreen extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.splash_screen);
-
-        // All word will me children of the splashContainer Layout
-        LinearLayout splashContainer = (LinearLayout)findViewById(R.id.splash_text_container);
 
         // The rootLayout is the parent of splash layout and only needed for the screen click
         // which starts the main activity
-        LinearLayout rootLayout = (LinearLayout)findViewById(R.id.root);
+        LinearLayout rootLayout = new LinearLayout(this);
+        rootLayout.setLayoutParams(new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        rootLayout.setGravity(Gravity.CENTER);
+        rootLayout.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary));
+        rootLayout.setOrientation(LinearLayout.VERTICAL);
+
+        // All word will me children of the splashContainer Layout
+        LinearLayout splashContainer = new LinearLayout(this);
+        splashContainer.setLayoutParams(new ActionBar.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        splashContainer.setOrientation(LinearLayout.VERTICAL);
+        rootLayout.addView(splashContainer);
+
+        // Make the rootLayout visible
+        setContentView(rootLayout);
 
         // For handling animation time
         Handler mHandler = new Handler();
