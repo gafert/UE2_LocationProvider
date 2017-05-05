@@ -1,6 +1,5 @@
 package fhtw.bsa2.gafert_steiner.ue2_locationprovider;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -20,11 +19,6 @@ import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,40 +26,31 @@ import fhtw.bsa2.hammer.mocklocationprovider.StartMockservice;
 
 public class LocationActivity extends AppCompatActivity {
 
+    /**
+     * Gets the current location with the LocationManager service
+     * and prints latitude and longitude in a ListView
+     * Additionally a Mock Location Provider can be activated to fake
+     * the current location
+     */
+
     private static final String TAG = "LocationActivity";
     private final int LOCATION_REQ_PERM = 99;
+    private final int LOCATION_UPDATE_FREQ_MILLI = 3000;
+    private final int LOCATION_MIN_DISTANCE_METER = 1;
     private StartMockservice mockservice;
-    private GoogleApiClient mGoogleApiClient;
     private ArrayAdapter<String> listAdapter;
-    private LocationListener ll;
-    private LocationManager lm;
+    private LocationListener locationListener;
+    private LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location);
 
-        //
-        // SETUP GOOGLE PLAY SERVICES
-        //
-
-        // Get application context = environment information about application
-        checkGooglePS(getApplicationContext());
-
-        // Create an instance of GoogleAPIClient
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        //
-        // MOCKSERVICE
-        //
-
         // Start the mockService
         // And set the gps route which it should use to route_example
         mockservice = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
         // mockservice.setShowLog(true);
-
         // Start and stop the mockService with a switch
         Switch mockSwitch = (Switch) findViewById(R.id.mockSwitch);
         mockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -78,10 +63,7 @@ public class LocationActivity extends AppCompatActivity {
             }
         });
 
-        //
-        // BUTTON TO OPEN MAP
-        //
-
+        // Button to open the MapActivity
         FloatingActionButton mapButton = (FloatingActionButton) findViewById(R.id.mapButton);
         mapButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,23 +74,19 @@ public class LocationActivity extends AppCompatActivity {
             }
         });
 
-        //
-        // ADD LISTVIEW AND ITS ADAPTER
-        //
-
-        // Adapter with own defined layout
+        // Add ListView and its adapter with own defined layout
         // An adapter is used to change the elements in a ListView
         // Data <-> Adapter <-> ListView
-        final List coordinateList = new ArrayList(); // Add elements to this
+        // The List coordinateList is only implemented to make it possible to add
+        // elements to the top of the ListView
+        final List<String> coordinateList = new ArrayList<>(); // Add elements to this
         listAdapter = new ArrayAdapter<>(this, R.layout.list_element, coordinateList);
         final ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
         coordinateListView.setAdapter(listAdapter);
 
-        //
-        // LOCATION MANAGER
-        //
-
-        ll = new LocationListener() {
+        // LocationListener Functions onLocationChanged() is called
+        // on every location change, upd
+        locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 // Add coordiante to the top of the array and update the listview
@@ -133,8 +111,19 @@ public class LocationActivity extends AppCompatActivity {
             }
         };
 
-        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+        // LocationManager is not instantiated as object
+        // you request it as a system service
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
+        // Get Permission and setup location Manager
+        setupLocationManager();
+    }
+
+    /**
+     * Setup periodic location updates
+     * Called after permission was accepted
+     */
+    private void setupLocationManager() {
         // Check permissions
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
@@ -154,21 +143,16 @@ public class LocationActivity extends AppCompatActivity {
             }
             return;
         }
-        setupLocationRequest();
-
-    }
-
-    /**
-     * Setup periodic location updates
-     */
-    private void setupLocationRequest() {
-        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000, 1, ll);
+        // How should the location be updated?
+        // Request the location from network min every 3 seconds
+        // And only request if there is min 1 meter difference
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_FREQ_MILLI, LOCATION_MIN_DISTANCE_METER, locationListener);
     }
 
     /**
      * Called after requestPermissions() was called and user made a choice
      * Get permission result and do what has to be done when they are granted
-     * Permission granted -> setupLocationRequest()
+     * Permission granted -> setupLocationManager()
      * Permission denied -> make Toast
      */
     @Override
@@ -178,7 +162,7 @@ public class LocationActivity extends AppCompatActivity {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission was granted, now get location data
-                    setupLocationRequest();
+                    setupLocationManager();
 
                 } else {
                     // Permission was denied
@@ -189,35 +173,4 @@ public class LocationActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Checks if the Google Play Services are available
-     */
-    private void checkGooglePS(Context context) {
-        // Create API availability object
-        final GoogleApiAvailability availability = GoogleApiAvailability.getInstance();
-        try {
-            // Check installed version
-            Log.d(TAG, getPackageManager().getPackageInfo("com.google.android.gms", 0).versionName);
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        if (availability.isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) {
-            Log.e(TAG, "Google PS availability: " + "ERROR");
-        } else {
-            Log.d(TAG, "Google PS availability: " + "SUCCESS");
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        mGoogleApiClient.disconnect();
-    }
 }

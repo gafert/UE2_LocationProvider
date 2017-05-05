@@ -3,7 +3,6 @@
     package="fhtw.bsa2.gafert_steiner.ue2_locationprovider">
 
     <!-- Used by MockLocationService -->
-    <!-- Ich glaub es ist egal, dass es rot markiert ist -->
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
 
     <!-- Used by location services -->

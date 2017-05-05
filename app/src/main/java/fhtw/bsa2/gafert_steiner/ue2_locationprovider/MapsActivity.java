@@ -1,6 +1,5 @@
 package fhtw.bsa2.gafert_steiner.ue2_locationprovider;
 
-import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -13,8 +12,6 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -25,32 +22,31 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
+    /**
+     * Gets the current position by network with the LocationManager
+     * and adds a marker. Periodically updates the marker to the position
+     * LocationManager is implemented the same as in LocationActivity
+     */
+
     private final String TAG = "MapsActivity";
     private final int LOCATION_REQ_PERM = 99;
-    private GoogleMap mMap;
-    private GoogleApiClient mGoogleApiClient;
+    private final int LOCATION_UPDATE_FREQ_MILLI = 500;
+    private final int LOCATION_MIN_DISTANCE_METER = 1;
     private Marker positionMarker;
-    private LocationListener ll;
-    private LocationManager lm;
+    private LocationListener locationListener;
+    private LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        //
-        // LOCATION MANAGER
-        //
-
-        ll = new LocationListener() {
+        locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 LatLng currentPos = new LatLng(location.getLatitude(), location.getLongitude());
@@ -74,9 +70,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         };
 
-        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        setupLocationManager();
+    }
 
-        // Check permissions
+    private void setupLocationManager() {
+        // Check permissions and setup location Manager
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -90,17 +89,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             return;
         }
-        setupLocationRequest();
-    }
-
-    /**
-     * Setup periodic location updates
-     */
-    private void setupLocationRequest() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 1, ll);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, LOCATION_UPDATE_FREQ_MILLI, LOCATION_MIN_DISTANCE_METER, locationListener);
     }
 
     /**
@@ -112,18 +101,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
         // Default Blue Dot showing current location
-        // mMap.setMyLocationEnabled(true);
+        // googlemap.setMyLocationEnabled(true);
 
         // Add a marker and move the camera
-        // Default location is Vienna
+        // Default location is Vienna(48,16)
         LatLng mCurrentPos = new LatLng(48, 16);
-        positionMarker = mMap.addMarker(new MarkerOptions()
+        positionMarker = googleMap.addMarker(new MarkerOptions()
                 .position(mCurrentPos)
                 .title("Current Position"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(mCurrentPos));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLng(mCurrentPos));
     }
 
     @Override
@@ -133,7 +120,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission was granted, now get location data
-                    setupLocationRequest();
+                    setupLocationManager();
 
                 } else {
                     // Permission was denied
@@ -142,16 +129,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
         }
-    }
-
-    protected void onStart() {
-        mGoogleApiClient.connect();
-        super.onStart();
-    }
-
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        super.onStop();
     }
 
 }
