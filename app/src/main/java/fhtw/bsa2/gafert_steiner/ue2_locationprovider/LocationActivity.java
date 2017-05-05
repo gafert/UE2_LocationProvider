@@ -26,6 +26,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import fhtw.bsa2.hammer.mocklocationprovider.StartMockservice;
 
@@ -63,7 +64,7 @@ public class LocationActivity extends AppCompatActivity {
         // Start the mockService
         // And set the gps route which it should use to route_example
         mockservice = new StartMockservice(this, getResources().openRawResource(R.raw.route_example));
-        mockservice.setShowLog(true);
+        // mockservice.setShowLog(true);
 
         // Start and stop the mockService with a switch
         Switch mockSwitch = (Switch) findViewById(R.id.mockSwitch);
@@ -98,8 +99,9 @@ public class LocationActivity extends AppCompatActivity {
         // Adapter with own defined layout
         // An adapter is used to change the elements in a ListView
         // Data <-> Adapter <-> ListView
-        listAdapter = new ArrayAdapter<>(this, R.layout.list_element, new ArrayList<String>());
-        ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
+        final List coordinateList = new ArrayList(); // Add elements to this
+        listAdapter = new ArrayAdapter<>(this, R.layout.list_element, coordinateList);
+        final ListView coordinateListView = (ListView) findViewById(R.id.coordinate_list_view);
         coordinateListView.setAdapter(listAdapter);
 
         //
@@ -109,10 +111,10 @@ public class LocationActivity extends AppCompatActivity {
         ll = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                // Add current location to the
-                Log.e(TAG, "onLocationChanged: " + location.toString());
-                listAdapter.add("Longitude: " + location.getLongitude() +
+                // Add coordiante to the top of the array and update the listview
+                coordinateList.add(0, "Longitude: " + location.getLongitude() +
                         "\nLatitude: " + location.getLatitude());
+                listAdapter.notifyDataSetChanged();
             }
 
             @Override
@@ -160,7 +162,7 @@ public class LocationActivity extends AppCompatActivity {
      * Setup periodic location updates
      */
     private void setupLocationRequest() {
-        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, ll);
+        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000, 1, ll);
     }
 
     /**
