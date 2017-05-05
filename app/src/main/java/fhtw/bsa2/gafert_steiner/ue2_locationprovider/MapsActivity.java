@@ -1,17 +1,19 @@
 package fhtw.bsa2.gafert_steiner.ue2_locationprovider;
 
+import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -21,12 +23,15 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private final String TAG = "MapsActivity";
+    private final int LOCATION_REQ_PERM = 99;
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
     private Marker positionMarker;
+    private LocationListener ll;
+    private LocationManager lm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,14 +42,65 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .build();
+
+        //
+        // LOCATION MANAGER
+        //
+
+        ll = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                LatLng currentPos = new LatLng(location.getLatitude(), location.getLongitude());
+                positionMarker.setPosition(currentPos);
+                positionMarker.setTitle("Current Position (" + currentPos + ")");
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
+
+        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        // Check permissions
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= 23) {
+                Log.d(TAG, "Version >= 23");
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQ_PERM);
+            } else {
+                Log.d(TAG, "onConnected(): ACCESS PROBLEM");
+                Toast.makeText(this, "You need to run Android 6.0 or above!", Toast.LENGTH_SHORT).show();
+            }
+            return;
         }
+        setupLocationRequest();
+    }
+
+    /**
+     * Setup periodic location updates
+     */
+    private void setupLocationRequest() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000, 1, ll);
     }
 
     /**
@@ -70,39 +126,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.newLatLng(mCurrentPos));
     }
 
-    /**
-     * Setup periodic location updates
-     * Configure location request parameters
-     */
     @Override
-    public void onConnected(Bundle connectionHint) {
-        LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000); //10 sec, inexact
-        mLocationRequest.setFastestInterval(1000); // 5 sec, limit the updates
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        // Request updates with configuration from above when permission is granted
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Permission to location denied!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case LOCATION_REQ_PERM: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission was granted, now get location data
+                    setupLocationRequest();
 
-    /**
-     * When the location changes move the currentPosition Marker to the new location
-     */
-    @Override
-    public void onLocationChanged(Location location) {
-        // Get current location
-        Location mLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (mLocation != null) {
-            LatLng currentPos = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-            positionMarker.setPosition(currentPos);
-            positionMarker.setTitle("Current Position (" + currentPos + ")");
-            Toast.makeText(this, "Updated position to: \n" + currentPos, Toast.LENGTH_SHORT).show();
+                } else {
+                    // Permission was denied
+                    Toast.makeText(this, "Location permission is required!", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
         }
     }
 
@@ -116,13 +154,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onStop();
     }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
 }
